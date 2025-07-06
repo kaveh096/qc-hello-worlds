@@ -1,8 +1,9 @@
 # QC Hello Worlds
+
 My repo for quantum computing resources and simple practices. My goal is not just to understand what quantum computing (QC) is at a high-level and then move on. I actually want to get some stuff done.
 
 ## Resources
-
+<img src="qc_hello_worlds.png" alt="An illustration of a quantum computing learning journey" width="350" align="right" style="margin: 0 0 1em 2em;" />
 As I learn QC, I will list out my resources here for the benefit of others. I will focus only on free resources or material that is likely easily available to most people.
 
 ### Prerequisite
