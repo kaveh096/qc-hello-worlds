@@ -17,7 +17,7 @@ Material to review before diving into the other resources.
 
 The first step is to learn (or re-learn) the fundamentals of Quantum Mechanics.
 
-3.  **[The Feynman Lectures](https://www.feynmanlectures.caltech.edu/III_toc.html) on Physics, Vol. III**: A classic and insightful introduction to quantum mechanics by Richard Feynman..
+3.  **[The Feynman Lectures](https://www.feynmanlectures.caltech.edu/III_toc.html) on Physics, Vol. III**: A classic and insightful introduction to quantum mechanics by Richard Feynman.
 4.  ✅ **Susskind's "The Theoretical Minimum"**: A book and [lecture series](https://theoreticalminimum.com/courses) by Leonard Susskind that aims to provide the essential knowledge for modern physics. The fact that this is freely available is baffling to me.
       * The [Quantum Mechanics course](https://theoreticalminimum.com/courses/quantum-mechanics/2012/winter) is a requirement, comprising approximately 20 hours of video lectures.
       * The rest are optional. I'm hooked and will likely continue.
@@ -44,7 +44,9 @@ Beyond learning QC fundamentals, I’d like to learn about practical ways to use
 
 16. [**k-SAT paper**](https://dl.acm.org/doi/10.1145/3313276.3316359): I've heard good things about this and need to read it.
 17. ✅ I had Gemini compile [a comprehensive research on QAOA](https://docs.google.com/document/d/e/2PACX-1vSd7z9rS4XBRHQmrOw0_kQVcoeOYX8YADmTzWGbGhfKkbilnEHfFAe2GO7j36xnUqqhcth1Nc56rMcK/pub) from the web. Reading it should bootstrap you into the quantum approximation space.
+18. ✅ [**MaxCut QAOA paper**](https://arxiv.org/pdf/1706.02998): This paper builds on an earlier paper and demonstrates a good approximation on MaxCut in polynomial time with QAOA. This is actually pretty exciting. I'd like to get my hands dirty with this in Qiskit sometime.
+19. ✅ [**MaxCut demo video**](https://www.youtube.com/watch?v=P3s7TIMIvZ0&pp=0gcJCfwAo7VqN5tD): It's a 30-minute video on the Qiskit channel that demonstrates how to code the above MaxCut paper. Comes with its own notebook.
 
 ### Further Material
 
-18. I found a similar [QC resource list on GitHub](https://github.com/MonitSharma/Learn-Quantum-Computing-For-Free). It’s more exhaustive. If I find anything interesting there, I’ll cover it too.
+20. I found a similar [QC resource list on GitHub](https://github.com/MonitSharma/Learn-Quantum-Computing-For-Free). It’s more exhaustive. If I find anything interesting there, I’ll cover it too.
