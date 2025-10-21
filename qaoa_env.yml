@@ -1,0 +1,38 @@
+name: qaoa_env
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  # --- Core Python ---
+  - python=3.11
+  - pip
+  - ipykernel
+  - jupyterlab
+  - notebook
+
+  # --- Core scientific stack ---
+  - numpy
+  - scipy
+  - matplotlib
+  - networkx
+  - pandas  # optional, for dataframes in results
+
+  # --- Quantum computing (Qiskit) ---
+  - pip:
+      - "qiskit[visualization]"        # Terra + visualization extras
+      - qiskit-aer                    # local simulators
+      - qiskit-ibm-provider           # access to IBM Quantum devices
+      - qiskit-algorithms             # optional advanced algorithms (future)
+      - ipywidgets                    # notebook widgets
+      - tqdm                          # progress bars for long simulations
+
+  # --- Optional useful tools ---
+  - seaborn                          # prettier plots
+  - jupyterlab_widgets               # if running in JupyterLab
+  - pipdeptree                       # optional diagnostic tool
+
+  # --- Version info ---
+  - pip:
+      - "setuptools>=68.0"
+      - "wheel"
