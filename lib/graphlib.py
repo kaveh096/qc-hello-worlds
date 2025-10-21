@@ -1,4 +1,3 @@
-# graphlib.py
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
@@ -30,6 +29,13 @@ class GraphLib:
             if not self.G.has_edge(vertices[i], vertices[i+1]):
                 w = random.randint(*weight_range)
                 self.add_edge(vertices[i], vertices[i+1], w)
+
+    def is_complete(self):
+        """Return True if the graph is a complete graph."""
+        n = self.G.number_of_nodes()
+        # A complete undirected graph has n*(n-1)/2 edges
+        expected_edges = n * (n - 1) // 2
+        return self.G.number_of_edges() == expected_edges
 
     def visualize(self, with_labels=True):
         pos = nx.spring_layout(self.G)
@@ -103,3 +109,41 @@ class GraphLib:
             if not improved:
                 break
         return (S, T), best_weight
+
+    # ===== TSP =====
+    def tsp_bruteforce(self):
+        nodes = list(self.G.nodes())
+        best_path = None
+        best_cost = float('inf')
+        for perm in itertools.permutations(nodes):
+            cost = sum(self.G[perm[i]][perm[i+1]]['weight']
+                       for i in range(len(perm)-1))
+            cost += self.G[perm[-1]][perm[0]]['weight']  # return to start
+            if cost < best_cost:
+                best_cost = cost
+                best_path = perm
+        return best_path, best_cost
+
+    def tsp_nearest_neighbor(self, start=0):
+        nodes = set(self.G.nodes())
+        path = [start]
+        nodes.remove(start)
+        total_cost = 0
+        while nodes:
+            last = path[-1]
+            next_node = min(nodes, key=lambda x: self.G[last][x]['weight'])
+            total_cost += self.G[last][next_node]['weight']
+            path.append(next_node)
+            nodes.remove(next_node)
+        total_cost += self.G[path[-1]][path[0]]['weight']  # close loop
+        return path, total_cost
+
+    def tsp_mst_approximation(self):
+        mst = nx.minimum_spanning_tree(self.G)
+        preorder_nodes = list(nx.dfs_preorder_nodes(mst, source=0))
+        total_cost = 0
+        for i in range(len(preorder_nodes) - 1):
+            total_cost += self.G[preorder_nodes[i]
+                                 ][preorder_nodes[i+1]]['weight']
+        total_cost += self.G[preorder_nodes[-1]][preorder_nodes[0]]['weight']
+        return preorder_nodes, total_cost
