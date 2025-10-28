@@ -53,7 +53,10 @@ class GraphLib:
 
     def is_complete(self):
         """Return True if the graph is a complete graph."""
-        return nx.is_complete(self.G)
+        n = self.G.number_of_nodes()
+        # complete undirected graph has n*(n-1)/2 edges
+        expected_edges = n * (n - 1) // 2
+        return self.G.number_of_edges() == expected_edges
 
     def visualize(self, with_labels=True, figsize=(6, 6), pos=None):
         """Matplotlib visualization (NetworkX spring layout by default)."""
@@ -209,7 +212,6 @@ class GraphLib:
             i = idx_map[u]
             j = idx_map[v]
             angle = 2.0 * gamma * w  # convention
-            angle = 2.0 * gamma * w
             # implement e^{-i angle/2 Z_i Z_j} with CNOT-RZ-CNOT
             qc.cx(i, j)
             qc.rz(angle, j)
@@ -225,11 +227,15 @@ class GraphLib:
         Fast and independent of Qiskit execution. Returns expected cut-value.
         """
         total = 0.0
+        lambda_map = {}
+        for u, v in self.G.edges():
+            # Precompute common neighbors
+            lambda_map[(u, v)] = len(list(nx.common_neighbors(self.G, u, v)))
         for (u, v, data) in self.G.edges(data=True):
             w = data.get('weight', 1)
             du = self.G.degree(u) - 1
             dv = self.G.degree(v) - 1
-            lam = len(list(nx.common_neighbors(self.G, u, v)))
+            lambda_ = lambda_map[(u,v)]
 
             sin4b = math.sin(4.0 * beta)
             sin2b_sq = math.sin(2.0 * beta) ** 2
@@ -238,13 +244,13 @@ class GraphLib:
 
             cos_du = cos_g ** du if du >= 0 else 1.0
             cos_dv = cos_g ** dv if dv >= 0 else 1.0
-            cos_du_dv_2lam = cos_g ** (du + dv - 2 * lam) if (du + dv - 2 * lam) >= 0 else 1.0
-            cos_2g_pow_lam = cos_2g ** lam if lam >= 0 else 1.0
+            cos_du_dv_2lambda = cos_g ** (du + dv - 2 * lambda_) if (du + dv - 2 * lambda_) >= 0 else 1.0
+            cos_2g_pow_lambda = cos_2g ** lambda_ if lambda_ >= 0 else 1.0
 
             term = (
                 0.5
                 + 0.25 * (sin4b * math.sin(gamma)) * (cos_du + cos_dv)
-                - 0.25 * (sin2b_sq * cos_du_dv_2lam) * (1.0 - cos_2g_pow_lam)
+                - 0.25 * (sin2b_sq * cos_du_dv_2lambda) * (1.0 - cos_2g_pow_lambda)
             )
             total += w * term
         return total
@@ -263,8 +269,7 @@ class GraphLib:
         # transpile for AerSimulator
         transpiled = transpile(qc_meas, backend=backend, optimization_level=1)
         job = backend.run(transpiled, shots=shots)
-        result = job.result()
-        counts = result.get_counts()
+        counts = job.result().get_counts()
 
         # compute cut from bitstring (qiskit returns bitstrings MSB..LSB; map with reverse)
         idx_map, _ = self._node_index_map()
