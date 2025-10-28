@@ -5,7 +5,7 @@ channels:
 
 dependencies:
   # --- Core Python ---
-  - python=3.11
+  - python=3.13
   - pip
   - ipykernel
   - jupyterlab
@@ -20,10 +20,10 @@ dependencies:
 
   # --- Quantum computing (Qiskit) ---
   - pip:
-      - "qiskit[visualization]"        # Terra + visualization extras
-      - qiskit-aer                    # local simulators
-      - qiskit-ibm-provider           # access to IBM Quantum devices
-      - qiskit-algorithms             # optional advanced algorithms (future)
+      - "qiskit[visualization]"       # Terra + visualization extras
+      - qiskit
+      - qiskit-aer                    # high-performance simulator
+      - qiskit-ibm-runtime            # access to IBM Quantum devices
       - ipywidgets                    # notebook widgets
       - tqdm                          # progress bars for long simulations
 
