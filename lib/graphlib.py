@@ -235,7 +235,7 @@ class GraphLib:
             w = data.get('weight', 1)
             du = self.G.degree(u) - 1
             dv = self.G.degree(v) - 1
-            lambda_ = lambda_map[(u,v)]
+            lambda_ = lambda_map[(u, v)]
 
             sin4b = math.sin(4.0 * beta)
             sin2b_sq = math.sin(2.0 * beta) ** 2
@@ -244,13 +244,15 @@ class GraphLib:
 
             cos_du = cos_g ** du if du >= 0 else 1.0
             cos_dv = cos_g ** dv if dv >= 0 else 1.0
-            cos_du_dv_2lambda = cos_g ** (du + dv - 2 * lambda_) if (du + dv - 2 * lambda_) >= 0 else 1.0
+            cos_du_dv_2lambda = cos_g ** (du + dv - 2 *
+                                          lambda_) if (du + dv - 2 * lambda_) >= 0 else 1.0
             cos_2g_pow_lambda = cos_2g ** lambda_ if lambda_ >= 0 else 1.0
 
             term = (
                 0.5
                 + 0.25 * (sin4b * math.sin(gamma)) * (cos_du + cos_dv)
-                - 0.25 * (sin2b_sq * cos_du_dv_2lambda) * (1.0 - cos_2g_pow_lambda)
+                - 0.25 * (sin2b_sq * cos_du_dv_2lambda) *
+                (1.0 - cos_2g_pow_lambda)
             )
             total += w * term
         return total
@@ -295,7 +297,8 @@ class GraphLib:
             if val > best_cut:
                 best_cut = val
                 best_bs = bs
-        expectation = total / shots
+        total_counts = sum(counts.values())
+        expectation = total / total_counts if total_counts > 0 else 0.0
         return {
             'expectation': expectation,
             'best_bitstring': best_bs,
