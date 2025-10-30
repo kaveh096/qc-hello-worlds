@@ -1,3 +1,4 @@
+from typing import Optional, Dict, Any
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
@@ -221,6 +222,24 @@ class GraphLib:
             qc.rx(2.0 * beta, q)
         return qc
 
+    def cut_value_from_bitstring(self, bitstr: str) -> int:
+        """Compute the cut value for the current graph from a measured bitstring.
+
+        Qiskit returns bitstrings as MSB..LSB; this implementation reverses the
+        string to map qubit indices to node indices used elsewhere in this class.
+        """
+        idx_map, _ = self._node_index_map()
+        b_rev = bitstr[::-1]
+        cut = 0
+        for (u, v, data) in self.G.edges(data=True):
+            i = idx_map[u]
+            j = idx_map[v]
+            bu = int(b_rev[i])
+            bv = int(b_rev[j])
+            if bu != bv:
+                cut += data.get('weight', 1)
+        return cut
+
     def qaoa1_expectation_classical(self, gamma, beta):
         """
         Analytic p=1 expectation using Theorem 1-like formula (edge-local).
@@ -274,25 +293,11 @@ class GraphLib:
         counts = job.result().get_counts()
 
         # compute cut from bitstring (qiskit returns bitstrings MSB..LSB; map with reverse)
-        idx_map, _ = self._node_index_map()
-
-        def cut_value_from_bitstring(bitstr):
-            b_rev = bitstr[::-1]
-            cut = 0
-            for (u, v, data) in self.G.edges(data=True):
-                i = idx_map[u]
-                j = idx_map[v]
-                bu = int(b_rev[i])
-                bv = int(b_rev[j])
-                if bu != bv:
-                    cut += data.get('weight', 1)
-            return cut
-
         total = 0.0
         best_cut = -1
         best_bs = None
         for bs, cnt in counts.items():
-            val = cut_value_from_bitstring(bs)
+            val = self.cut_value_from_bitstring(bs)
             total += val * cnt
             if val > best_cut:
                 best_cut = val
@@ -335,3 +340,94 @@ class GraphLib:
         else:
             best_gamma, best_beta = best_pair
         return best_gamma, best_beta, best_val, refine_info
+
+
+# ================================================================
+# IBM Runtime (SamplerV2) integration with automatic transpilation
+# ================================================================
+
+
+def run_on_ibm_runtime(qc, backend_name: str, shots: int = 4096, service=None) -> Dict[str, Any]:
+    """
+    Execute a quantum circuit on a real IBM Quantum backend using Qiskit Runtime SamplerV2.
+    Automatically transpiles the circuit to the backend's supported gates.
+
+    Args:
+        qc: QuantumCircuit (must include measurements)
+        backend_name: name of backend, e.g., 'ibm_nairobi'
+        shots: number of shots to sample
+        service: Optional QiskitRuntimeService() instance; created internally if None
+
+    Returns:
+        dict with:
+            counts (dict[str, float]): measured distribution (if available)
+            metadata (dict): provider runtime metadata (if available)
+            raw_result: the full SamplerV2 result object
+    """
+    from qiskit_ibm_runtime import QiskitRuntimeService, SamplerV2
+    from qiskit import transpile
+
+    if service is None:
+        service = QiskitRuntimeService()
+
+    # get backend
+    backend = service.backend(backend_name)
+
+    # ---- Transpile circuit to match backend's instruction set ----
+    try:
+        qc_compiled = transpile(
+            qc,
+            backend=backend,
+            optimization_level=2,
+            scheduling_method="alap",
+        )
+    except Exception as e:
+        raise RuntimeError(
+            f"Transpilation failed for backend {backend_name}: {e}")
+
+    # ---- Create and configure SamplerV2 ----
+    sampler = SamplerV2(mode=backend)
+    sampler.options.default_shots = shots
+
+    # ---- Run circuit ----
+    job = sampler.run([qc_compiled])
+    result = job.result()
+    pub_result = result[0]
+
+    # ---- Extract counts (supports multiple runtime versions) ----
+    counts = None
+    try:
+        # New runtime result structure (V2)
+        if hasattr(pub_result, "data") and hasattr(pub_result.data, "meas"):
+            counts = pub_result.data.meas.get_counts()
+        elif hasattr(pub_result, "get_counts"):
+            counts = pub_result.get_counts()
+    except Exception:
+        pass
+
+    metadata = getattr(pub_result, "metadata", None)
+
+    return {
+        "counts": counts,
+        "metadata": metadata,
+        "raw_result": pub_result,
+    }
+
+
+def backend_info(backend_name: str, service=None) -> Dict[str, Any]:
+    """Return quick info about a backend: qubits, status, pending_jobs, etc."""
+    from qiskit_ibm_runtime import QiskitRuntimeService
+    if service is None:
+        service = QiskitRuntimeService()
+    backend = service.backend(backend_name)
+    props = backend.properties()
+    status = backend.status()
+    return {
+        "backend_name": backend.name,
+        "num_qubits": backend.num_qubits,
+        "pending_jobs": status.pending_jobs,
+        "operational": status.operational,
+        "avg_readout_error": None
+        if props is None
+        else sum([q.readout_error for q in props.qubits if hasattr(q, "readout_error")]) / len(props.qubits),
+    }
