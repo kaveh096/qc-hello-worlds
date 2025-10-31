@@ -7,9 +7,9 @@ import math
 import numpy as np
 
 # Qiskit simulator imports
-from qiskit import transpile
+from qiskit import transpile, QuantumCircuit
+from qiskit_ibm_runtime import RuntimeJobV2, QiskitRuntimeService, SamplerV2
 from qiskit_aer import AerSimulator
-from qiskit import QuantumCircuit
 
 # SciPy optional for local refinement
 try:
@@ -347,71 +347,41 @@ class GraphLib:
 # ================================================================
 
 
-def run_on_ibm_runtime(qc, backend_name: str, shots: int = 4096, service=None) -> Dict[str, Any]:
+def run_on_ibm_runtime(qcs, backend_name: str, shots: int = 4096, service=None) -> RuntimeJobV2:
     """
-    Execute a quantum circuit on a real IBM Quantum backend using Qiskit Runtime SamplerV2.
-    Automatically transpiles the circuit to the backend's supported gates.
+    Execute one or more quantum circuits on a real IBM Quantum backend using
+    Qiskit Runtime SamplerV2. Transpiles all provided circuits to the backend's
+    supported gates and submits them in a single `sampler.run` call.
 
     Args:
-        qc: QuantumCircuit (must include measurements)
+        qcs: A single QuantumCircuit or an iterable/list of QuantumCircuit
+             objects (each must include measurements).
         backend_name: name of backend, e.g., 'ibm_nairobi'
-        shots: number of shots to sample
+        shots: number of shots to sample for each circuit
         service: Optional QiskitRuntimeService() instance; created internally if None
 
     Returns:
-        dict with:
-            counts (dict[str, float]): measured distribution (if available)
-            metadata (dict): provider runtime metadata (if available)
-            raw_result: the full SamplerV2 result object
+        The job object from SamplerV2.run()
     """
-    from qiskit_ibm_runtime import QiskitRuntimeService, SamplerV2
-    from qiskit import transpile
-
     if service is None:
         service = QiskitRuntimeService()
-
-    # get backend
     backend = service.backend(backend_name)
 
-    # ---- Transpile circuit to match backend's instruction set ----
+    # ---- Transpile circuits to match backend's instruction set ----
     try:
-        qc_compiled = transpile(
-            qc,
+        qc_compiled_list = transpile(
+            qcs,
             backend=backend,
             optimization_level=2,
             scheduling_method="alap",
         )
     except Exception as e:
-        raise RuntimeError(
-            f"Transpilation failed for backend {backend_name}: {e}")
+        raise RuntimeError(f"Transpilation failed for backend {backend_name}: {e}")
 
-    # ---- Create and configure SamplerV2 ----
+    # ---- Create and run SamplerV2 ----
     sampler = SamplerV2(mode=backend)
-    sampler.options.default_shots = shots
-
-    # ---- Run circuit ----
-    job = sampler.run([qc_compiled])
-    result = job.result()
-    pub_result = result[0]
-
-    # ---- Extract counts (supports multiple runtime versions) ----
-    counts = None
-    try:
-        # New runtime result structure (V2)
-        if hasattr(pub_result, "data") and hasattr(pub_result.data, "meas"):
-            counts = pub_result.data.meas.get_counts()
-        elif hasattr(pub_result, "get_counts"):
-            counts = pub_result.get_counts()
-    except Exception:
-        pass
-
-    metadata = getattr(pub_result, "metadata", None)
-
-    return {
-        "counts": counts,
-        "metadata": metadata,
-        "raw_result": pub_result,
-    }
+    sampler.options.default_shots=shots
+    return sampler.run(qc_compiled_list)
 
 
 def backend_info(backend_name: str, service=None) -> Dict[str, Any]:
