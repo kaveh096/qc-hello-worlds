@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
@@ -7,7 +7,7 @@ import math
 import numpy as np
 
 # Qiskit simulator imports
-from qiskit import transpile, QuantumCircuit
+from qiskit import transpile, QuantumCircuit, generate_preset_pass_manager
 from qiskit_ibm_runtime import RuntimeJobV2, QiskitRuntimeService, SamplerV2
 from qiskit_aer import AerSimulator
 
@@ -366,21 +366,18 @@ def run_on_ibm_runtime(qcs, backend_name: str, shots: int = 4096, service=None) 
     if service is None:
         service = QiskitRuntimeService()
     backend = service.backend(backend_name)
-
     # ---- Transpile circuits to match backend's instruction set ----
     try:
-        qc_compiled_list = transpile(
-            qcs,
-            backend=backend,
-            optimization_level=2,
-            scheduling_method="alap",
-        )
+        pm = generate_preset_pass_manager(
+            optimization_level=3, backend=backend)
+        qc_compiled_list = pm.run(qcs)
     except Exception as e:
-        raise RuntimeError(f"Transpilation failed for backend {backend_name}: {e}")
+        raise RuntimeError(
+            f"Transpilation failed for backend {backend_name}: {e}")
 
     # ---- Create and run SamplerV2 ----
     sampler = SamplerV2(mode=backend)
-    sampler.options.default_shots=shots
+    sampler.options.default_shots = shots
     return sampler.run(qc_compiled_list)
 
 
